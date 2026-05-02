@@ -1,38 +1,41 @@
 # Minimal Store Launch Skeleton - Outdoor Gear
 
-> Scope document for the initial outdoor equipment Shopify store.
+> Scope document for the initial outdoor equipment MedusaJS store.
 > This is not a finished implementation plan.
 
 ## Starting Point
 
-This project is modeled after `copper-teaware` as a lightweight Shopify parent repo:
+This project is a MedusaJS monorepo modeled after the lightweight
+`copper-teaware` project direction, but for outdoor equipment.
 
 | Area | Initial state |
 | --- | --- |
 | GitHub repo | Created under `HuaqingAI/outdoor-gear-shop` |
 | Paperclip project | Tracks this repo as the primary workspace |
-| Shopify store | Not created or connected yet |
-| Theme | Placeholder directory only |
-| Product catalog | Not selected |
-| Payments/shipping/tax | Not configured |
+| Commerce backend | Medusa v2 in `apps/backend` |
+| Storefront | Next.js storefront in `apps/storefront` |
+| Product catalog | Preview seed products only |
+| Payments/shipping/tax | Manual placeholders only |
 
 ## Minimum Preview Scope
 
-The first viable preview should be a non-transactional outdoor-gear storefront:
+The first viable preview should be a controlled, non-production outdoor-gear
+storefront:
 
 | Module | Requirement |
 | --- | --- |
-| Store identity | Name, domain, market, and brand positioning |
-| Theme baseline | Dawn or imported Shopify theme in `theme/` |
-| Homepage | Hero, category blocks, sourcing promise, and email capture |
-| Preview product | One draft product or starter kit with `preview_only=true` |
-| CTA | Email capture or inquiry only |
+| Store identity | Name, target market, and brand positioning |
+| Backend | Medusa backend with PostgreSQL and Redis |
+| Storefront | Next.js storefront connected by publishable API key |
+| Homepage | Outdoor gear hero, category navigation, and featured preview products |
+| Preview products | Seeded products remain validation placeholders until sourcing is approved |
+| Checkout | Manual payment/shipping only until real ops are approved |
 | Compliance | No safety, warranty, waterproof, or certification claims without evidence |
-| Analytics | Basic traffic and email capture tracking |
+| Analytics | Basic traffic and conversion tracking before public launch |
 
 ## Product Direction Candidates
 
-Start with categories that are light, shippable, and low regulatory risk:
+Start with categories that are light, shippable, and lower regulatory risk:
 
 | Candidate | Notes |
 | --- | --- |
@@ -52,8 +55,10 @@ Avoid in the first preview:
 
 ## Immediate Next Work
 
-1. Confirm the store name, target market, and Shopify domain.
-2. Choose whether `theme/` should be a normal folder or a paired submodule repo.
-3. Select the first preview product category and sourcing criteria.
-4. Create Shopify app credentials and run `bash scripts/shopify-auth-check.sh`.
-5. Pull or initialize the Shopify theme in `theme/`.
+1. Provision PostgreSQL and Redis for the Medusa backend.
+2. Fill `apps/backend/.env` from `apps/backend/.env.template`.
+3. Run migrations and seed data.
+4. Create the admin user and retrieve a publishable API key.
+5. Fill `apps/storefront/.env.local` from `apps/storefront/.env.template`.
+6. Start `pnpm dev` and verify backend/admin plus storefront.
+7. Replace preview product images/copy with approved source-backed assets.

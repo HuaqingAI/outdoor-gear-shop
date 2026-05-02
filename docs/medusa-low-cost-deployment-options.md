@@ -1,14 +1,15 @@
 # MedusaJS Low-Cost Deployment Options
 
-This note answers a practical question for this project: if we do not use Shopify, can we switch to MedusaJS and still keep early deployment costs low?
+This note records the deployment tradeoffs for the current MedusaJS direction.
 
 ## Short Answer
 
-Yes, but only with self-hosting and only if we accept higher operations complexity.
+Yes, but the low-cost path means self-hosting and accepting higher operations
+complexity.
 
 - Medusa can be deployed at relatively low monthly cost on self-managed infrastructure.
 - Medusa Cloud is not the low-cost option for a live store. Its official pricing starts at `Develop: $29/mo`, `Launch: $99/mo`, `Scale: $299/mo`.
-- Shopify Basic currently starts at `$29/month` billed yearly after the temporary intro offer, so Medusa Cloud does not beat Shopify on entry price for a real launch.
+- The selected direction for this project is MedusaJS, so the key decision is whether to self-host or pay for Medusa Cloud.
 
 ## What Medusa Requires in Production
 
@@ -48,7 +49,7 @@ Expected monthly cost:
 Tradeoffs:
 
 - Lowest realistic cost if traffic is very small
-- More setup work than Shopify
+- More setup work than a hosted commerce platform
 - Not the cleanest production shape because Medusa officially describes separate server and worker deployments
 
 ### Option B: Low-friction managed stack
@@ -72,7 +73,7 @@ Expected monthly cost:
 Tradeoffs:
 
 - Operationally simpler than stitching together multiple vendors
-- Still more moving parts than Shopify
+- Still more moving parts than a hosted commerce platform
 - If we follow Medusa's 2 GB recommendation, a larger app instance may be more appropriate than the 512 MB Starter plan
 
 ### Option C: Single-VM self-host
@@ -102,7 +103,7 @@ Observed official pricing:
 Takeaway:
 
 - Good if we want Medusa without self-hosting pain
-- Not a low-cost replacement for Shopify Basic in the trial phase
+- Not the lowest-cost option for the trial phase
 
 ## Railway Note
 
@@ -119,15 +120,8 @@ Source:
 
 ## Recommendation For This Project
 
-For an early low-cost test, there are only two rational paths:
-
-1. Stay on Shopify if the goal is fastest launch with minimal infrastructure work.
-2. Use Medusa only if we specifically want code ownership and are willing to manage backend infrastructure.
-
-My recommendation:
-
-- If the goal is `fast validation with the least ops`, keep Shopify.
-- If the goal is `own the commerce backend and avoid Shopify lock-in`, use Medusa with a self-hosted low-cost stack.
+For an early low-cost Medusa test, use a self-hosted stack first and move to a
+managed option only when operations cost becomes the bottleneck.
 
 Best Medusa starting point for this project:
 

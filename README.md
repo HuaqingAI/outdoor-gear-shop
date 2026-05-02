@@ -1,34 +1,79 @@
-# Outdoor Gear Shopify Store
+# Outdoor Gear Medusa Store
 
-Shopify store workspace for outdoor gear, camping equipment, and trail accessories.
-
-- **Store URL**: TBD after Shopify shop creation
-- **GitHub**: https://github.com/HuaqingAI/outdoor-gear-shop
+MedusaJS monorepo for an outdoor gear ecommerce store under
+`HuaqingAI/outdoor-gear-shop`.
 
 ## Project Structure
 
-```
+```text
 /
-├── theme/          # Shopify theme workspace or submodule placeholder
-├── scripts/        # Automation and Shopify Admin API checks
-├── docs/           # Store launch docs, product scope, brand guidelines
-└── assets/         # Product images and brand assets
+├── apps/backend       # Medusa v2 backend and admin
+├── apps/storefront    # Next.js storefront
+├── docs              # launch, scope, and deployment notes
+├── assets            # product and brand assets
+└── scripts           # local verification helpers
 ```
 
-## Getting Started
+## Requirements
 
-1. Install the [Shopify CLI](https://shopify.dev/docs/themes/tools/cli).
-2. Copy `.env.example` to `.env` and fill in the real Shopify app credentials.
-3. Run `bash scripts/shopify-auth-check.sh` after the Shopify store exists.
-4. Initialize the theme workspace in `theme/` using Shopify CLI or convert it to a git submodule once a separate theme repo is approved.
+- Node.js 20+
+- pnpm 10+
+- PostgreSQL 15+
+- Redis
 
-## Git Workflow
+The Medusa starter was generated with `create-medusa-app@2.14.2` and the
+Next.js starter storefront.
 
-- Before making changes, run `git fetch origin && git pull --ff-only`.
-- Commit and push delivery changes; do not leave required work only in a local worktree.
-- Keep `.env` and other credentials out of git.
-- If `theme/` becomes a git submodule, commit theme changes in the theme repo first, then update and commit the parent repo submodule pointer.
+## Local Setup
+
+1. Install dependencies:
+
+```bash
+pnpm install
+```
+
+2. Create backend env:
+
+```bash
+cp apps/backend/.env.template apps/backend/.env
+```
+
+3. Create storefront env:
+
+```bash
+cp apps/storefront/.env.template apps/storefront/.env.local
+```
+
+4. Update `apps/backend/.env` with a real `DATABASE_URL`, `JWT_SECRET`,
+   `COOKIE_SECRET`, and `REDIS_URL`.
+
+5. Run the backend setup:
+
+```bash
+cd apps/backend
+pnpm medusa db:migrate
+pnpm medusa exec ./src/migration-scripts/initial-data-seed.ts
+pnpm medusa user -e admin@example.com -p change-me
+```
+
+6. Copy the generated publishable API key into
+   `apps/storefront/.env.local` as `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY`.
+
+7. Start local development:
+
+```bash
+pnpm dev
+```
+
+- Backend/admin: `http://localhost:9000/app`
+- Storefront: `http://localhost:8000`
 
 ## Current Scope
 
-This repo starts as a lightweight parent project modeled after `copper-teaware`, but for an outdoor equipment Shopify store. The initial phase is setup and planning only: no store domain, product catalog, payment setup, or publishable theme has been configured yet.
+The repository is now Medusa-first. Legacy hosted-platform scripts, theme
+placeholders, and backend API docs have been removed. The seed script creates a
+US preview store with initial outdoor categories and sample products for camp
+storage, cookware accessories, and trail repair.
+
+Do not enable real checkout until payment, tax, shipping, inventory, returns,
+supplier evidence, and customer support flows are approved.
