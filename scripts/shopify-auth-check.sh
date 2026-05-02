@@ -11,8 +11,7 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
   source "$ROOT_DIR/.env"
 fi
 
-: "${SHOPIFY_STORE_DOMAIN:?Set SHOPIFY_STORE_DOMAIN, for example outdoor-gear.myshopify.com}"
-
+SHOPIFY_STORE_DOMAIN="${SHOPIFY_STORE_DOMAIN:-}"
 SHOPIFY_STORE_DOMAIN="${SHOPIFY_STORE_DOMAIN#https://}"
 SHOPIFY_STORE_DOMAIN="${SHOPIFY_STORE_DOMAIN#http://}"
 SHOPIFY_STORE_DOMAIN="${SHOPIFY_STORE_DOMAIN%/}"
@@ -20,10 +19,30 @@ SHOPIFY_CLIENT_ID="${SHOPIFY_CLIENT_ID:-}"
 SHOPIFY_CLIENT_SECRET="${SHOPIFY_CLIENT_SECRET:-}"
 SHOPIFY_ADMIN_API_TOKEN="${SHOPIFY_ADMIN_API_TOKEN:-}"
 
-if [[ -z "$SHOPIFY_ADMIN_API_TOKEN" ]]; then
-  : "${SHOPIFY_CLIENT_ID:?Set SHOPIFY_CLIENT_ID or SHOPIFY_ADMIN_API_TOKEN}"
-  : "${SHOPIFY_CLIENT_SECRET:?Set SHOPIFY_CLIENT_SECRET or SHOPIFY_ADMIN_API_TOKEN}"
-fi
+validate_inputs() {
+  local missing=()
+
+  if [[ -z "$SHOPIFY_STORE_DOMAIN" ]]; then
+    missing+=("SHOPIFY_STORE_DOMAIN (example: outdoor-gear.myshopify.com)")
+  fi
+
+  if [[ -z "$SHOPIFY_ADMIN_API_TOKEN" ]]; then
+    if [[ -z "$SHOPIFY_CLIENT_ID" ]]; then
+      missing+=("SHOPIFY_CLIENT_ID (or set SHOPIFY_ADMIN_API_TOKEN)")
+    fi
+    if [[ -z "$SHOPIFY_CLIENT_SECRET" ]]; then
+      missing+=("SHOPIFY_CLIENT_SECRET (or set SHOPIFY_ADMIN_API_TOKEN)")
+    fi
+  fi
+
+  if [[ "${#missing[@]}" -gt 0 ]]; then
+    echo "Missing required Shopify environment variables:" >&2
+    printf ' - %s\n' "${missing[@]}" >&2
+    echo >&2
+    echo "Next step: copy .env.example to .env and fill in real values." >&2
+    return 1
+  fi
+}
 
 json_get() {
   python3 - "$1" <<'PY'
@@ -78,6 +97,7 @@ graphql_check() {
 }
 
 echo "=== Shopify Admin API auth check ==="
+validate_inputs
 echo "Store: ${SHOPIFY_STORE_DOMAIN}"
 
 if [[ -n "$SHOPIFY_ADMIN_API_TOKEN" ]]; then
