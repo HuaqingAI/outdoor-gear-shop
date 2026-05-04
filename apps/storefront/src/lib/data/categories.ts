@@ -2,6 +2,18 @@ import { sdk } from "@lib/config"
 import { HttpTypes } from "@medusajs/types"
 import { getCacheOptions } from "./cookies"
 
+const decodeCategorySegment = (segment: string) => {
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    return segment
+  }
+}
+
+export const resolveCategoryHandle = (categoryHandle: string[]) => {
+  return categoryHandle.map(decodeCategorySegment).join("/")
+}
+
 export const listCategories = async (query?: Record<string, unknown>) => {
   const next = {
     ...(await getCacheOptions("categories")),
@@ -27,7 +39,7 @@ export const listCategories = async (query?: Record<string, unknown>) => {
 }
 
 export const getCategoryByHandle = async (categoryHandle: string[]) => {
-  const handle = `${categoryHandle.join("/")}`
+  const handle = resolveCategoryHandle(categoryHandle)
 
   const next = {
     ...(await getCacheOptions("categories")),

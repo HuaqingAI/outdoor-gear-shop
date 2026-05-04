@@ -12,6 +12,7 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "backend:seed": "turbo seed --filter=@outdoor-gear/backend",
+    "preview:verify-catalog": "node scripts/verify-preview-catalog.mjs",
     "backend:dev": "turbo dev --filter=@outdoor-gear/backend",
     "storefront:dev": "turbo dev --filter=@outdoor-gear/storefront"
   },

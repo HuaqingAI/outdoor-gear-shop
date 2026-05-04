@@ -39,6 +39,48 @@ export default async function Nav() {
             <div className="hidden small:flex items-center gap-x-6 h-full">
               <LocalizedClientLink
                 className="hover:text-ui-fg-base"
+                href="/products"
+                trackingEvent="preview_category_click"
+                trackingContext={{
+                  ctaId: "nav_products",
+                  metadata: {
+                    placement: "nav",
+                    destination: "products",
+                  },
+                }}
+              >
+                Products
+              </LocalizedClientLink>
+              <LocalizedClientLink
+                className="hover:text-ui-fg-base"
+                href="/blog"
+                trackingEvent="preview_category_click"
+                trackingContext={{
+                  ctaId: "nav_blog",
+                  metadata: {
+                    placement: "nav",
+                    destination: "blog",
+                  },
+                }}
+              >
+                Blog
+              </LocalizedClientLink>
+              <LocalizedClientLink
+                className="hover:text-ui-fg-base"
+                href="/events"
+                trackingEvent="preview_category_click"
+                trackingContext={{
+                  ctaId: "nav_events",
+                  metadata: {
+                    placement: "nav",
+                    destination: "events",
+                  },
+                }}
+              >
+                Events
+              </LocalizedClientLink>
+              <LocalizedClientLink
+                className="hover:text-ui-fg-base"
                 href="/account"
                 data-testid="nav-account-link"
               >
@@ -52,7 +94,7 @@ export default async function Nav() {
                   href="/cart"
                   data-testid="nav-cart-link"
                 >
-                  Cart (0)
+                  Preview requests
                 </LocalizedClientLink>
               }
             >

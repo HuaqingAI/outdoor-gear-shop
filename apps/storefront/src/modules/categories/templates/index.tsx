@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
-import InteractiveLink from "@modules/common/components/interactive-link"
+import { getCategoryPageContent } from "@lib/content/preview-content"
 import SkeletonProductGrid from "@modules/skeletons/templates/skeleton-product-grid"
 import RefinementList from "@modules/store/components/refinement-list"
 import { SortOptions } from "@modules/store/components/refinement-list/sort-products"
@@ -35,62 +35,109 @@ export default function CategoryTemplate({
   }
 
   getParents(category)
+  const productCount = category.products?.length || 0
+  const content = getCategoryPageContent(
+    category.handle,
+    category.name,
+    category.description,
+  )
 
   return (
     <div
-      className="flex flex-col small:flex-row small:items-start py-6 content-container"
+      className="content-container py-10 small:py-16"
       data-testid="category-container"
     >
-      <RefinementList sortBy={sort} data-testid="sort-by-container" />
-      <div className="w-full">
-        <div className="flex flex-row mb-8 text-2xl-semi gap-4">
-          {parents &&
-            parents.map((parent) => (
-              <span key={parent.id} className="text-ui-fg-subtle">
-                <LocalizedClientLink
-                  className="mr-4 hover:text-black"
-                  href={`/categories/${parent.handle}`}
-                  data-testid="sort-by-link"
-                >
-                  {parent.name}
-                </LocalizedClientLink>
-                /
+      <div className="mb-8 flex flex-col gap-4 small:mb-10 small:flex-row small:items-end small:justify-between">
+        <div className="max-w-3xl">
+          <div className="mb-3 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#637568]">
+            {parents.map((parent) => (
+              <LocalizedClientLink
+                key={parent.id}
+                className="hover:text-[#17261f]"
+                href={`/categories/${parent.handle}`}
+                data-testid="sort-by-link"
+                trackingEvent="preview_category_click"
+                trackingContext={{
+                  categoryHandle: parent.handle,
+                  ctaId: "category_breadcrumb",
+                  metadata: {
+                    placement: "category_breadcrumb",
+                    categoryName: parent.name,
+                  },
+                }}
+              >
+                {parent.name} /
+              </LocalizedClientLink>
+            ))}
+            <span>Category</span>
+          </div>
+          <h1
+            data-testid="category-page-title"
+            className="text-[32px] font-semibold leading-[38px] text-[#17261f] small:text-[40px] small:leading-[46px]"
+          >
+            {category.name}
+          </h1>
+          <p className="mt-3 text-base leading-6 text-[#415347]">
+            {content.description}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {content.keywords.map((keyword) => (
+              <span
+                key={keyword}
+                className="rounded-full border border-[#c8d8c8] bg-[#eef4ed] px-3 py-1 text-xs font-semibold text-[#17261f]"
+              >
+                {keyword}
               </span>
             ))}
-          <h1 data-testid="category-page-title">{category.name}</h1>
+          </div>
         </div>
-        {category.description && (
-          <div className="mb-8 text-base-regular">
-            <p>{category.description}</p>
-          </div>
-        )}
-        {category.category_children && (
-          <div className="mb-8 text-base-large">
-            <ul className="grid grid-cols-1 gap-2">
-              {category.category_children?.map((c) => (
-                <li key={c.id}>
-                  <InteractiveLink href={`/categories/${c.handle}`}>
-                    {c.name}
-                  </InteractiveLink>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <Suspense
-          fallback={
-            <SkeletonProductGrid
-              numberOfProducts={category.products?.length ?? 8}
+        <p className="text-sm font-medium text-[#637568]">
+          {productCount} preview {productCount === 1 ? "item" : "items"}
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-8 small:grid-cols-[260px_minmax(0,1fr)] small:items-start">
+        <RefinementList sortBy={sort} data-testid="sort-by-container" />
+        <div className="w-full">
+          {!!category.category_children?.length && (
+            <div className="mb-8 rounded-2xl border border-[#d7dfd5] bg-[#f7faf6] p-4 small:p-5">
+              <ul className="grid grid-cols-1 gap-2 text-sm font-medium text-[#17261f] small:grid-cols-2">
+                {category.category_children.map((c) => (
+                  <li key={c.id}>
+                    <LocalizedClientLink
+                      className="underline decoration-[#9cb09f] underline-offset-4"
+                      href={`/categories/${c.handle}`}
+                      trackingEvent="preview_category_click"
+                      trackingContext={{
+                        categoryHandle: c.handle,
+                        ctaId: "category_child_link",
+                        metadata: {
+                          placement: "category_children",
+                          categoryName: c.name,
+                        },
+                      }}
+                    >
+                      {c.name}
+                    </LocalizedClientLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <Suspense
+            fallback={
+              <SkeletonProductGrid
+                numberOfProducts={category.products?.length ?? 8}
+              />
+            }
+          >
+            <PaginatedProducts
+              sortBy={sort}
+              page={pageNumber}
+              categoryId={category.id}
+              countryCode={countryCode}
             />
-          }
-        >
-          <PaginatedProducts
-            sortBy={sort}
-            page={pageNumber}
-            categoryId={category.id}
-            countryCode={countryCode}
-          />
-        </Suspense>
+          </Suspense>
+        </div>
       </div>
     </div>
   )

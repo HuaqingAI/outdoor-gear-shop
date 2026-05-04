@@ -1,6 +1,7 @@
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
 
+import { getCollectionPageContent } from "@lib/content/preview-content"
 import { getCollectionByHandle, listCollections } from "@lib/data/collections"
 import { listRegions } from "@lib/data/regions"
 import { StoreCollection, StoreRegion } from "@medusajs/types"
@@ -31,11 +32,11 @@ export async function generateStaticParams() {
       regions
         ?.map((r) => r.countries?.map((c) => c.iso_2))
         .flat()
-        .filter(Boolean) as string[]
+        .filter(Boolean) as string[],
   )
 
   const collectionHandles = collections.map(
-    (collection: StoreCollection) => collection.handle
+    (collection: StoreCollection) => collection.handle,
   )
 
   const staticParams = countryCodes
@@ -43,7 +44,7 @@ export async function generateStaticParams() {
       collectionHandles.map((handle: string | undefined) => ({
         countryCode,
         handle,
-      }))
+      })),
     )
     .flat()
 
@@ -58,12 +59,20 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     notFound()
   }
 
-  const metadata = {
-    title: `${collection.title} | Outdoor Gear Shop`,
-    description: `${collection.title} collection`,
-  } as Metadata
+  const content = getCollectionPageContent(collection.handle, collection.title)
 
-  return metadata
+  return {
+    title: content.seoTitle,
+    description: content.seoDescription,
+    keywords: content.keywords,
+    alternates: {
+      canonical: `/${params.countryCode}/collections/${params.handle}`,
+    },
+    openGraph: {
+      title: content.seoTitle,
+      description: content.seoDescription,
+    },
+  }
 }
 
 export default async function CollectionPage(props: Props) {
@@ -72,7 +81,7 @@ export default async function CollectionPage(props: Props) {
   const { sortBy, page } = searchParams
 
   const collection = await getCollectionByHandle(params.handle).then(
-    (collection) => collection
+    (collection) => collection,
   )
 
   if (!collection) {

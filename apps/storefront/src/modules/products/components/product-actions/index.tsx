@@ -1,16 +1,15 @@
 "use client"
 
-import { addToCart } from "@lib/data/cart"
-import { useIntersection } from "@lib/hooks/use-in-view"
+import { trackPreviewEvent } from "@lib/preview/client"
 import { HttpTypes } from "@medusajs/types"
-import { Button } from "@modules/common/components/ui"
+import { Button, Text } from "@modules/common/components/ui"
 import Divider from "@modules/common/components/divider"
 import OptionSelect from "@modules/products/components/product-actions/option-select"
+import { getProductPreviewInfo } from "@modules/products/utils/preview-metadata"
+import PreviewIntentForm from "@modules/preview/components/preview-intent-form"
 import { isEqual } from "lodash"
 import { useParams, usePathname, useSearchParams } from "next/navigation"
-import { useEffect, useMemo, useRef, useState } from "react"
-import ProductPrice from "../product-price"
-import MobileActions from "./mobile-actions"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 
 type ProductActionsProps = {
@@ -37,8 +36,9 @@ export default function ProductActions({
   const searchParams = useSearchParams()
 
   const [options, setOptions] = useState<Record<string, string | undefined>>({})
-  const [isAdding, setIsAdding] = useState(false)
+  const [isFormOpen, setIsFormOpen] = useState(false)
   const countryCode = useParams().countryCode as string
+  const previewInfo = getProductPreviewInfo(product)
 
   // If there is only 1 variant, preselect the options
   useEffect(() => {
@@ -90,54 +90,28 @@ export default function ProductActions({
     }
 
     router.replace(pathname + "?" + params.toString())
-  }, [selectedVariant, isValidVariant])
+  }, [selectedVariant, isValidVariant, pathname, router, searchParams])
 
-  // check if the selected variant is in stock
-  const inStock = useMemo(() => {
-    // If we don't manage inventory, we can always add to cart
-    if (selectedVariant && !selectedVariant.manage_inventory) {
-      return true
-    }
+  const handlePreviewRequest = () => {
+    setIsFormOpen((current) => !current)
 
-    // If we allow back orders on the variant, we can add to cart
-    if (selectedVariant?.allow_backorder) {
-      return true
-    }
-
-    // If there is inventory available, we can add to cart
-    if (
-      selectedVariant?.manage_inventory &&
-      (selectedVariant?.inventory_quantity || 0) > 0
-    ) {
-      return true
-    }
-
-    // Otherwise, we can't add to cart
-    return false
-  }, [selectedVariant])
-
-  const actionsRef = useRef<HTMLDivElement>(null)
-
-  const inView = useIntersection(actionsRef, "0px")
-
-  // add the selected variant to the cart
-  const handleAddToCart = async () => {
-    if (!selectedVariant?.id) return null
-
-    setIsAdding(true)
-
-    await addToCart({
-      variantId: selectedVariant.id,
-      quantity: 1,
+    void trackPreviewEvent("preview_intent_click", {
       countryCode,
+      pagePath: pathname,
+      productHandle: product.handle || undefined,
+      collectionHandle: product.collection?.handle || undefined,
+      ctaId: "product_launch_update",
+      metadata: {
+        placement: "product_actions",
+        variantId: selectedVariant?.id,
+        selectedOptions: options,
+      },
     })
-
-    setIsAdding(false)
   }
 
   return (
     <>
-      <div className="flex flex-col gap-y-2" ref={actionsRef}>
+      <div className="flex flex-col gap-y-4">
         <div>
           {(product.variants?.length ?? 0) > 1 && (
             <div className="flex flex-col gap-y-4">
@@ -150,7 +124,7 @@ export default function ProductActions({
                       updateOption={setOptionValue}
                       title={option.title ?? ""}
                       data-testid="product-options"
-                      disabled={!!disabled || isAdding}
+                      disabled={!!disabled}
                     />
                   </div>
                 )
@@ -160,39 +134,41 @@ export default function ProductActions({
           )}
         </div>
 
-        <ProductPrice product={product} variant={selectedVariant} />
-
         <Button
-          onClick={handleAddToCart}
-          disabled={
-            !inStock ||
-            !selectedVariant ||
-            !!disabled ||
-            isAdding ||
-            !isValidVariant
-          }
+          onClick={handlePreviewRequest}
+          disabled={!!disabled}
           variant="primary"
-          className="w-full h-10"
-          isLoading={isAdding}
-          data-testid="add-product-button"
+          className="w-full text-sm"
+          data-testid="preview-intent-button"
         >
-          {!selectedVariant && !options
-            ? "Select variant"
-            : !inStock || !isValidVariant
-            ? "Out of stock"
-            : "Add to cart"}
+          {isFormOpen
+            ? "Hide update form"
+            : previewInfo.previewTier === "coming_soon"
+            ? "Notify me when available"
+            : "Request launch updates"}
         </Button>
-        <MobileActions
-          product={product}
-          variant={selectedVariant}
-          options={options}
-          updateOptions={setOptionValue}
-          inStock={inStock}
-          handleAddToCart={handleAddToCart}
-          isAdding={isAdding}
-          show={!inView}
-          optionsDisabled={!!disabled || isAdding}
-        />
+        <Text className="text-sm leading-6 text-[#637568]">
+          {previewInfo.inventoryState
+            ? `${previewInfo.inventoryState}. `
+            : ""}
+          This preview catalog is collecting launch interest only. Live ordering,
+          shipping, returns, and service policies are not active yet.
+        </Text>
+        {isFormOpen && (
+          <PreviewIntentForm
+            ctaId="product_launch_update"
+            title="Track this preview item"
+            description="Leave your email to get notified when this item moves past preview-only validation."
+            countryCode={countryCode}
+            productHandle={product.handle || undefined}
+            collectionHandle={product.collection?.handle || undefined}
+            metadata={{
+              placement: "product_actions",
+              variantId: selectedVariant?.id,
+              selectedOptions: options,
+            }}
+          />
+        )}
       </div>
     </>
   )

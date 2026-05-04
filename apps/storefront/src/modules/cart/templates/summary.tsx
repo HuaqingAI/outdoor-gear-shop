@@ -1,44 +1,34 @@
 "use client"
 
-import { Button, Heading } from "@modules/common/components/ui"
+import { useParams } from "next/navigation"
 
-import CartTotals from "@modules/common/components/cart-totals"
-import Divider from "@modules/common/components/divider"
-import DiscountCode from "@modules/checkout/components/discount-code"
-import LocalizedClientLink from "@modules/common/components/localized-client-link"
-import { HttpTypes } from "@medusajs/types"
+import { Heading, Text } from "@modules/common/components/ui"
+import PreviewIntentForm from "@modules/preview/components/preview-intent-form"
 
-type SummaryProps = {
-  cart: HttpTypes.StoreCart
-}
-
-function getCheckoutStep(cart: HttpTypes.StoreCart) {
-  if (!cart?.shipping_address?.address_1 || !cart.email) {
-    return "address"
-  } else if (cart?.shipping_methods?.length === 0) {
-    return "delivery"
-  } else {
-    return "payment"
-  }
-}
-
-const Summary = ({ cart }: SummaryProps) => {
-  const step = getCheckoutStep(cart)
+const Summary = () => {
+  const params = useParams()
+  const countryCode =
+    typeof params.countryCode === "string" ? params.countryCode : undefined
 
   return (
     <div className="flex flex-col gap-y-4">
       <Heading level="h2" className="text-[2rem] leading-[2.75rem]">
-        Summary
+        Preview request
       </Heading>
-      <DiscountCode cart={cart} />
-      <Divider />
-      <CartTotals totals={cart} />
-      <LocalizedClientLink
-        href={"/checkout?step=" + step}
-        data-testid="checkout-button"
-      >
-        <Button className="w-full h-10">Go to checkout</Button>
-      </LocalizedClientLink>
+      <Text className="text-sm text-ui-fg-subtle">
+        The preview catalog is collecting launch intent instead of accepting
+        orders, discounts, or fulfillment choices. Share interest and our team
+        will follow up when items clear sourcing validation.
+      </Text>
+      <PreviewIntentForm
+        ctaId="cart_launch_update"
+        title="Request preview launch updates"
+        description="Leave your email to receive sourcing and availability updates instead of starting a purchase."
+        countryCode={countryCode}
+        metadata={{
+          placement: "cart_preview_panel",
+        }}
+      />
     </div>
   )
 }

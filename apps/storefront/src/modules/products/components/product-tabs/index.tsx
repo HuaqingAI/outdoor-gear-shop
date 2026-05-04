@@ -1,11 +1,11 @@
 "use client"
 
 import Back from "@modules/common/icons/back"
-import FastDelivery from "@modules/common/icons/fast-delivery"
 import Refresh from "@modules/common/icons/refresh"
 
 import Accordion from "./accordion"
 import { HttpTypes } from "@medusajs/types"
+import { getProductPreviewInfo } from "@modules/products/utils/preview-metadata"
 
 type ProductTabsProps = {
   product: HttpTypes.StoreProduct
@@ -18,8 +18,12 @@ const ProductTabs = ({ product }: ProductTabsProps) => {
       component: <ProductInfoTab product={product} />,
     },
     {
-      label: "Shipping & Returns",
-      component: <ShippingInfoTab />,
+      label: "Use cases",
+      component: <UseCasesTab product={product} />,
+    },
+    {
+      label: "Preview status",
+      component: <PreviewStatusTab product={product} />,
     },
   ]
 
@@ -41,75 +45,131 @@ const ProductTabs = ({ product }: ProductTabsProps) => {
   )
 }
 
-const ProductInfoTab = ({ product }: ProductTabsProps) => {
+const UseCasesTab = ({ product }: ProductTabsProps) => {
+  const previewInfo = getProductPreviewInfo(product)
+
+  if (!previewInfo.useCases.length) {
+    return (
+      <p className="py-6 text-sm leading-6 text-[#637568]">
+        Use cases are being finalized for this preview item.
+      </p>
+    )
+  }
+
   return (
-    <div className="text-small-regular py-8">
-      <div className="grid grid-cols-2 gap-x-8">
-        <div className="flex flex-col gap-y-4">
-          <div>
-            <span className="font-semibold">Material</span>
-            <p>{product.material ? product.material : "-"}</p>
-          </div>
-          <div>
-            <span className="font-semibold">Country of origin</span>
-            <p>{product.origin_country ? product.origin_country : "-"}</p>
-          </div>
-          <div>
-            <span className="font-semibold">Type</span>
-            <p>{product.type ? product.type.value : "-"}</p>
-          </div>
-        </div>
-        <div className="flex flex-col gap-y-4">
-          <div>
-            <span className="font-semibold">Weight</span>
-            <p>{product.weight ? `${product.weight} g` : "-"}</p>
-          </div>
-          <div>
-            <span className="font-semibold">Dimensions</span>
-            <p>
-              {product.length && product.width && product.height
-                ? `${product.length}L x ${product.width}W x ${product.height}H`
-                : "-"}
-            </p>
-          </div>
-        </div>
-      </div>
+    <ul className="grid grid-cols-1 gap-4 py-6 text-sm leading-6 text-[#415347] small:grid-cols-3">
+      {previewInfo.useCases.map((useCase) => (
+        <li
+          key={useCase}
+          className="rounded-xl border border-[#d7dfd5] bg-[#f7faf6] p-4 font-medium text-[#17261f]"
+        >
+          {useCase}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+const ProductInfoTab = ({ product }: ProductTabsProps) => {
+  const previewInfo = getProductPreviewInfo(product)
+
+  const specs = [
+    product.material && ["Material", product.material],
+    product.origin_country && ["Country of origin", product.origin_country],
+    product.type?.value && ["Type", product.type.value],
+    product.weight && ["Weight", `${product.weight} g`],
+    product.length &&
+      product.width &&
+      product.height && [
+        "Dimensions",
+        `${product.length}L x ${product.width}W x ${product.height}H`,
+      ],
+    ...previewInfo.keySpecs,
+  ].filter(Boolean) as [string, string][]
+
+  return (
+    <div className="py-6 text-sm leading-6 text-[#415347]">
+      {specs.length > 0 ? (
+        <dl className="grid grid-cols-1 gap-4 small:grid-cols-2">
+          {specs.map(([label, value]) => (
+            <div key={`${label}-${value}`} className="rounded-xl border border-[#d7dfd5] bg-[#f7faf6] p-4">
+              <dt className="text-xs font-semibold uppercase tracking-[0.06em] text-[#637568]">
+                {label}
+              </dt>
+              <dd className="mt-1 font-medium text-[#17261f]">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="rounded-xl border border-[#d7dfd5] bg-[#f7faf6] p-4 text-[#637568]">
+          Specs are still under sourcing review and will be completed before
+          public launch.
+        </p>
+      )}
     </div>
   )
 }
 
-const ShippingInfoTab = () => {
+const PreviewStatusTab = ({ product }: ProductTabsProps) => {
+  const previewInfo = getProductPreviewInfo(product)
+  const statusRows = [
+    ["Preview state", previewInfo.statusLabel || "Preview-only catalog item"],
+    [
+      "Inventory state",
+      previewInfo.inventoryState || "Launch inventory remains under review",
+    ],
+    ["Preview price", previewInfo.priceLabel || "Pending price review"],
+    ["CTA mode", "Notify-only launch updates"],
+    ["Sample verification", "No sample has been verified yet"],
+    [
+      "Image set",
+      "Main, detail, field context, and scale references are visible for review",
+    ],
+  ]
+
   return (
-    <div className="text-small-regular py-8">
+    <div className="text-small-regular py-8 text-[#415347]">
+      <dl className="mb-8 grid grid-cols-1 gap-4 small:grid-cols-2">
+        {statusRows.map(([label, value]) => (
+          <div
+            key={label}
+            className="rounded-xl border border-[#d7dfd5] bg-[#f7faf6] p-4"
+          >
+            <dt className="text-xs font-semibold uppercase tracking-[0.06em] text-[#637568]">
+              {label}
+            </dt>
+            <dd className="mt-1 font-medium text-[#17261f]">{value}</dd>
+          </div>
+        ))}
+      </dl>
       <div className="grid grid-cols-1 gap-y-8">
         <div className="flex items-start gap-x-2">
-          <FastDelivery />
+          <Refresh />
           <div>
-            <span className="font-semibold">Fast delivery</span>
+            <span className="font-semibold">Sourcing validation</span>
             <p className="max-w-sm">
-              Your package will arrive in 3-5 business days at your pick up
-              location or in the comfort of your home.
+              Product data, availability, and supplier readiness are still being
+              reviewed before public launch.
             </p>
           </div>
         </div>
         <div className="flex items-start gap-x-2">
           <Refresh />
           <div>
-            <span className="font-semibold">Simple exchanges</span>
+            <span className="font-semibold">Launch updates</span>
             <p className="max-w-sm">
-              Is the fit not quite right? No worries - we&apos;ll exchange your
-              product for a new one.
+              Request updates on preview items so the team can use interest
+              signals during launch planning.
             </p>
           </div>
         </div>
         <div className="flex items-start gap-x-2">
           <Back />
           <div>
-            <span className="font-semibold">Easy returns</span>
+            <span className="font-semibold">No purchases yet</span>
             <p className="max-w-sm">
-              Just return your product and we&apos;ll refund your money. No
-              questions asked – we&apos;ll do our best to make sure your return
-              is hassle-free.
+              Live ordering, shipping, returns, and service policies are
+              unavailable while this storefront remains preview only.
             </p>
           </div>
         </div>

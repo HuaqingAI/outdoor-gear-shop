@@ -1,0 +1,169 @@
+name: outdoor-gear-shop-preview
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-outdoor_gear_shop}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-outdoor_gear_shop}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "${REDIS_PORT:-16379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  setup:
+    build:
+      context: .
+      target: dev
+    command:
+      - sh
+      - -lc
+      - |
+        set -e
+        pnpm --dir apps/backend exec medusa db:migrate --execute-safe-links
+        node scripts/ensure-preview-seed.mjs
+        node scripts/export-publishable-key.mjs .docker-cache/storefront.env
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-outdoor_gear_shop}?sslmode=disable
+      DB_NAME: ${POSTGRES_DB:-outdoor_gear_shop}
+      REDIS_URL: redis://redis:6379
+      STORE_CORS: ${STORE_CORS:-http://localhost:8000,http://127.0.0.1:8000}
+      ADMIN_CORS: ${ADMIN_CORS:-http://localhost:5173,http://localhost:9000,http://127.0.0.1:9000,https://paperclip-hth-outdoor-gear-shop-admin.hqkj.com}
+      AUTH_CORS: ${AUTH_CORS:-http://localhost:5173,http://localhost:9000,http://127.0.0.1:9000,https://paperclip-hth-outdoor-gear-shop-admin.hqkj.com}
+      JWT_SECRET: ${JWT_SECRET:-change_me_to_a_long_random_value}
+      COOKIE_SECRET: ${COOKIE_SECRET:-change_me_to_a_long_random_value}
+      MEDUSA_WORKER_MODE: shared
+      MEDUSA_ADMIN_DISABLED: "false"
+      __MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS: ${__MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS:-paperclip-hth-outdoor-gear-shop-admin.hqkj.com}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/backend/node_modules
+      - /app/apps/storefront/node_modules
+      - backend-medusa:/app/apps/backend/.medusa
+
+  backend:
+    build:
+      context: .
+      target: dev
+    command:
+      - pnpm
+      - --dir
+      - apps/backend
+      - exec
+      - medusa
+      - develop
+      - --host
+      - 0.0.0.0
+      - --port
+      - "9000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-outdoor_gear_shop}?sslmode=disable
+      DB_NAME: ${POSTGRES_DB:-outdoor_gear_shop}
+      REDIS_URL: redis://redis:6379
+      STORE_CORS: ${STORE_CORS:-http://localhost:8000,http://127.0.0.1:8000}
+      ADMIN_CORS: ${ADMIN_CORS:-http://localhost:5173,http://localhost:9000,http://127.0.0.1:9000,https://paperclip-hth-outdoor-gear-shop-admin.hqkj.com}
+      AUTH_CORS: ${AUTH_CORS:-http://localhost:5173,http://localhost:9000,http://127.0.0.1:9000,https://paperclip-hth-outdoor-gear-shop-admin.hqkj.com}
+      JWT_SECRET: ${JWT_SECRET:-change_me_to_a_long_random_value}
+      COOKIE_SECRET: ${COOKIE_SECRET:-change_me_to_a_long_random_value}
+      MEDUSA_WORKER_MODE: shared
+      MEDUSA_ADMIN_DISABLED: "false"
+      __MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS: ${__MEDUSA_ADMIN_ADDITIONAL_ALLOWED_HOSTS:-paperclip-hth-outdoor-gear-shop-admin.hqkj.com}
+    ports:
+      - "${BACKEND_PORT:-9000}:9000"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/backend/node_modules
+      - /app/apps/storefront/node_modules
+      - backend-medusa:/app/apps/backend/.medusa
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:9000/health || curl -fsS http://localhost:9000/store/regions",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  storefront:
+    build:
+      context: .
+      target: dev
+    command:
+      - sh
+      - -lc
+      - |
+        if [ -f .docker-cache/storefront.env ]; then
+          set -a
+          . .docker-cache/storefront.env
+          set +a
+        fi
+        if [ -z "$$NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY" ] || [ "$$NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY" = "pk_local_placeholder" ]; then
+          echo "Missing publishable key. Run docker compose up setup or set NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY."
+          exit 1
+        fi
+        exec pnpm --dir apps/storefront exec next dev --turbopack -p 8000 -H 0.0.0.0
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://backend:9000
+      NEXT_PUBLIC_DEFAULT_REGION: us
+      NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-http://localhost:8000}
+      NEXT_PUBLIC_SUPPORT_EMAIL: ${NEXT_PUBLIC_SUPPORT_EMAIL:-preview@example.com}
+      PREVIEW_ANALYTICS_DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-outdoor_gear_shop}?sslmode=disable
+      NEXT_PUBLIC_STRIPE_KEY: ""
+    ports:
+      - "${STOREFRONT_PORT:-8000}:8000"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/backend/node_modules
+      - /app/apps/storefront/node_modules
+      - storefront-next:/app/apps/storefront/.next
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000 >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  postgres-data:
+  backend-medusa:
+  storefront-next:

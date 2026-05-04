@@ -14,9 +14,11 @@ import { Locale } from "@lib/data/locales"
 
 const SideMenuItems = {
   Home: "/",
-  Store: "/store",
+  Products: "/products",
+  Blog: "/blog",
+  Events: "/events",
   Account: "/account",
-  Cart: "/cart",
+  "Preview requests": "/cart",
 }
 
 type SideMenuProps = {
@@ -81,6 +83,22 @@ const SideMenu = ({ regions, locales, currentLocale }: SideMenuProps) => {
                               className="text-3xl leading-10 hover:text-ui-fg-disabled"
                               onClick={close}
                               data-testid={`${name.toLowerCase()}-link`}
+                              trackingEvent={
+                                href === "/store"
+                                  ? "preview_category_click"
+                                  : undefined
+                              }
+                              trackingContext={
+                                href === "/store"
+                                  ? {
+                                      ctaId: "side_menu_store",
+                                      metadata: {
+                                        placement: "side_menu",
+                                        destination: href,
+                                      },
+                                    }
+                                  : undefined
+                              }
                             >
                               {name}
                             </LocalizedClientLink>

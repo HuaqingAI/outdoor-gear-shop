@@ -1,7 +1,12 @@
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
 
-import { getCategoryByHandle, listCategories } from "@lib/data/categories"
+import { getCategoryPageContent } from "@lib/content/preview-content"
+import {
+  getCategoryByHandle,
+  listCategories,
+  resolveCategoryHandle,
+} from "@lib/data/categories"
 import { listRegions } from "@lib/data/regions"
 import { HttpTypes, StoreRegion } from "@medusajs/types"
 import CategoryTemplate from "@modules/categories/templates"
@@ -23,11 +28,11 @@ export async function generateStaticParams() {
   }
 
   const countryCodes = await listRegions().then((regions: StoreRegion[]) =>
-    regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat()
+    regions?.map((r) => r.countries?.map((c) => c.iso_2)).flat(),
   )
 
   const categoryHandles = product_categories.map(
-    (category: HttpTypes.StoreProductCategory) => category.handle
+    (category: HttpTypes.StoreProductCategory) => category.handle,
   )
 
   const staticParams = countryCodes
@@ -35,7 +40,7 @@ export async function generateStaticParams() {
       categoryHandles.map((handle: string) => ({
         countryCode,
         category: [handle],
-      }))
+      })),
     )
     .flat()
 
@@ -46,16 +51,22 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params
   try {
     const productCategory = await getCategoryByHandle(params.category)
-
-    const title = productCategory.name + " | Outdoor Gear Shop"
-
-    const description = productCategory.description ?? `${title} category.`
+    const content = getCategoryPageContent(
+      productCategory.handle,
+      productCategory.name,
+      productCategory.description,
+    )
 
     return {
-      title: `${title} | Outdoor Gear Shop`,
-      description,
+      title: content.seoTitle,
+      description: content.seoDescription,
+      keywords: content.keywords,
       alternates: {
-        canonical: `${params.category.join("/")}`,
+        canonical: `/${params.countryCode}/categories/${resolveCategoryHandle(params.category)}`,
+      },
+      openGraph: {
+        title: content.seoTitle,
+        description: content.seoDescription,
       },
     }
   } catch {

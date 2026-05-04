@@ -1,4 +1,5 @@
 import { HttpTypes } from "@medusajs/types"
+import { getProductPreviewInfo } from "@modules/products/utils/preview-metadata"
 import { getPercentageDiff } from "./get-percentage-diff"
 import { convertToLocale } from "./money"
 
@@ -14,7 +15,7 @@ type VariantWithPrice = HttpTypes.StoreProductVariant & {
 }
 
 export const getPricesForVariant = (variant: VariantWithPrice) => {
-  if (!variant?.calculated_price?.calculated_amount) {
+  if (variant?.calculated_price?.calculated_amount == null) {
     return null
   }
 
@@ -48,6 +49,7 @@ export function getProductPrice({
   if (!product || !product.id) {
     throw new Error("No product provided")
   }
+  const previewInfo = getProductPreviewInfo(product)
 
   const cheapestPrice = () => {
     if (!product || !product.variants?.length) {
@@ -84,7 +86,19 @@ export function getProductPrice({
 
   return {
     product,
-    cheapestPrice: cheapestPrice(),
+    cheapestPrice:
+      cheapestPrice() ||
+      (previewInfo.priceLabel
+        ? {
+            calculated_price_number: 0,
+            calculated_price: previewInfo.priceLabel,
+            original_price_number: 0,
+            original_price: previewInfo.priceLabel,
+            currency_code: "usd",
+            price_type: "default",
+            percentage_diff: 0,
+          }
+        : null),
     variantPrice: variantPrice(),
   }
 }

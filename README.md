@@ -68,12 +68,41 @@ pnpm dev
 - Backend/admin: `http://localhost:9000/app`
 - Storefront: `http://localhost:8000`
 
+## Docker Preview
+
+For an agent-accessible preview, run the full stack through Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+Compose starts PostgreSQL, Redis, the Medusa backend, and the Next.js
+storefront. It exposes:
+
+- Backend/admin: `http://localhost:9000/app`
+- Storefront: `http://localhost:8000`
+- PostgreSQL: `localhost:15432`
+- Redis: `localhost:16379`
+
+The one-shot `setup` service runs Medusa migrations, ensures the 24-product
+public preview catalog baseline, and exports the generated publishable API key
+into `.docker-cache/storefront.env` for the storefront. To change exposed host
+ports, set `POSTGRES_PORT`, `REDIS_PORT`, `BACKEND_PORT`, or `STOREFRONT_PORT`
+before running Compose. The database and Redis defaults avoid common host
+conflicts; the application ports stay on `9000` and `8000`.
+
+To verify a running preview catalog:
+
+```bash
+pnpm preview:verify-catalog https://paperclip-hth-outdoor-gear-shop.hqkj.com
+```
+
 ## Current Scope
 
 The repository is now Medusa-first. Legacy hosted-platform scripts, theme
-placeholders, and backend API docs have been removed. The seed script creates a
-US preview store with initial outdoor categories and sample products for camp
-storage, cookware accessories, and trail repair.
+placeholders, and backend API docs have been removed. The seed scripts create a
+US preview store with 24 public outdoor gear preview products across shelter,
+packs, sleep systems, camp kitchen, apparel, and lighting.
 
 Do not enable real checkout until payment, tax, shipping, inventory, returns,
 supplier evidence, and customer support flows are approved.

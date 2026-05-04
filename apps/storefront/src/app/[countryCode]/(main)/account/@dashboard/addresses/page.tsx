@@ -29,7 +29,8 @@ export default async function Addresses(props: {
         <h1 className="text-2xl-semi">Shipping Addresses</h1>
         <p className="text-base-regular">
           View and update your shipping addresses, you can add as many as you
-          like. Saving your addresses will make them available during checkout.
+          like. Saving addresses keeps your profile data ready for future launch
+          operations, but preview mode does not expose checkout.
         </p>
       </div>
       <AddressBook customer={customer} region={region} />

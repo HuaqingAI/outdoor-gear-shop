@@ -4,6 +4,7 @@ import { listProducts } from "@lib/data/products"
 import { getRegion, listRegions } from "@lib/data/regions"
 import ProductTemplate from "@modules/products/templates"
 import { HttpTypes } from "@medusajs/types"
+import { getScopedPreviewImageUrl } from "@modules/products/utils/preview-metadata"
 
 type Props = {
   params: Promise<{ countryCode: string; handle: string }>
@@ -56,17 +57,45 @@ function getImagesForVariant(
   product: HttpTypes.StoreProduct,
   selectedVariantId?: string
 ) {
+  const productImages = getProductImages(product)
+
   if (!selectedVariantId || !product.variants) {
-    return product.images
+    return productImages
   }
 
   const variant = product.variants!.find((v) => v.id === selectedVariantId)
   if (!variant || !variant.images?.length) {
-    return product.images
+    return productImages
   }
 
   const imageIdsMap = new Map(variant.images!.map((i) => [i.id, true]))
-  return product.images?.filter((i) => imageIdsMap.has(i.id)) ?? null
+  const variantImages = productImages.filter((i) => i.id && imageIdsMap.has(i.id))
+
+  return variantImages.length > 0 ? variantImages : productImages
+}
+
+function getProductImages(product: HttpTypes.StoreProduct) {
+  const sourceImages = product.images ?? []
+  const productScopedImages = sourceImages.filter((image) => {
+    if (!image.url) {
+      return false
+    }
+
+    return !(
+      image.url.includes("images.unsplash.com") &&
+      product.metadata?.product_info
+    )
+  })
+
+  if (productScopedImages.length > 0) {
+    return productScopedImages
+  }
+
+  return (["main", "detail", "context", "scale"] as const).map((role, index) => ({
+    id: `${product.id}-${role}`,
+    rank: index,
+    url: getScopedPreviewImageUrl(product, role),
+  }))
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
@@ -114,11 +143,11 @@ export default async function ProductPage(props: Props) {
     queryParams: { handle: params.handle },
   }).then(({ response }) => response.products[0])
 
-  const images = getImagesForVariant(pricedProduct, selectedVariantId)
-
   if (!pricedProduct) {
     notFound()
   }
+
+  const images = getImagesForVariant(pricedProduct, selectedVariantId)
 
   return (
     <ProductTemplate
